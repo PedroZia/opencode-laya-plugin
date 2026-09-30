@@ -1,0 +1,14 @@
+# artefatos locais
+logs/
+*.log
+
+# resultados de calibração (locais)
+calibration*.json
+
+# venv (nunca fica no repo; vive em ~/.config/opencode/laya)
+.venv/
+
+# editores
+.vscode/
+.idea/
+*.swp
