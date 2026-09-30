@@ -64,6 +64,66 @@ Laya 29ms | modelo multilingual | threshold 0.6
 `escalar` = confiança abaixo do threshold (padrão 0,60): a orientação é o modelo decidir por conta
 própria ou perguntar ao usuário — esse é o contrato "código decide, Laya sugere".
 
+## Usar com Claude Code, Codex CLI e outros clientes (MCP)
+
+A Laya também é distribuída com um **servidor MCP oficial** (`laya-mcp-server`), então o mesmo motor
+de decisões atende qualquer cliente compatível com MCP — Claude Code, Codex CLI/IDE, Gemini CLI,
+Cursor, Claude Desktop, entre outros. Para esses clientes, **nada deste repositório é necessário**:
+eles falam direto com o servidor MCP da Laya.
+
+O `install.ps1` já instala o extra `laya[mcp]`. Tools expostas:
+`laya_predict`, `laya_predict_batch`, `laya_route`, `laya_route_batch`, `laya_shortlist`,
+`laya_preset`, `laya_decide` e `laya_status`.
+
+Teste rápido (handshake MCP + uma decisão real):
+
+```powershell
+& "$env:USERPROFILE\.config\opencode\laya\.venv\Scripts\python.exe" tools\mcp-smoke.py
+```
+
+### Claude Code
+
+```powershell
+claude mcp add --scope user laya -- "$env:USERPROFILE\.config\opencode\laya\.venv\Scripts\laya-mcp-server.exe"
+claude mcp list   # deve mostrar: laya ... ✓ Connected
+```
+
+### Codex CLI
+
+```powershell
+codex mcp add laya --env LAYA_PRELOAD=0 -- "$env:USERPROFILE\.config\opencode\laya\.venv\Scripts\laya-mcp-server.exe"
+```
+
+Ou direto no `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.laya]
+command = 'C:\Users\<voce>\.config\opencode\laya\.venv\Scripts\laya-mcp-server.exe'
+args = []
+enabled = true
+tool_timeout_sec = 120
+
+[mcp_servers.laya.env]
+LAYA_PRELOAD = "0"
+```
+
+### Dica de uso (equivalente ao "hint" do plugin do OpenCode)
+
+Em clientes que aceitam instruções persistentes, adicione ao `CLAUDE.md` / `AGENTS.md`:
+
+```md
+## Decisões rápidas (Laya)
+Para micro-julgamentos objetivos (classificar, rotear, pontuar risco/urgência, sim/não), prefira as
+tools MCP `laya_predict` / `laya_preset` / `laya_decide` em vez de raciocinar longamente. Confie
+quando a confiança for alta; escale (decida você mesmo ou pergunte ao usuário) quando for baixa.
+```
+
+### Memória/VRAM por cliente
+
+Cada cliente MCP sobe o próprio processo e carrega os seus próprios checkpoints (por padrão, com
+preload). Se rodar OpenCode + Claude Code + Codex ao mesmo tempo, limite o consumo em cada
+configuração com `LAYA_MODELS=english,multilingual` e/ou `LAYA_PRELOAD=0` (carregamento sob demanda).
+
 ## Privacidade
 
 **Tudo roda local.** Os estados enviados às decisões nunca saem da sua máquina; não há API key nem
@@ -188,6 +248,7 @@ opencode-laya-plugin/
 ├─ uninstall.ps1       # desinstalador (com confirmação; não toca nos pesos do HF)
 ├─ tools/
 │  ├─ smoke.py         # teste direto (sem servidor), mede latência EN/PT
+│  ├─ mcp-smoke.py     # teste do servidor MCP oficial (handshake + decisão real)
 │  └─ calibrate*.py    # experimentos de calibração do guardrail (ver §Testes)
 └─ LICENSE             # MIT
 ```
@@ -238,7 +299,8 @@ desligado; os scripts `tools/calibrate*.py` ficam para reavaliar com modelos/pre
 ## Limitações conhecidas
 
 - **Windows apenas, por enquanto** (instalador e caminhos do plugin). macOS/Linux: a instalação
-  manual funciona (ver abaixo), mas o auto-start do plugin assume `.venv\Scripts`.
+  manual funciona (ver abaixo), mas o auto-start do plugin assume `.venv\Scripts`. O servidor MCP
+  da Laya, porém, funciona em qualquer sistema — veja a seção de MCP.
 - **Julgamento de comando shell não é confiável** — não use esta tool para decidir permissões
   (foi exatamente o que a calibração mostrou).
 - **CPU é lento** (0,3–2 s/decisão) — em máquinas sem NVIDIA, reduza os checkpoints carregados

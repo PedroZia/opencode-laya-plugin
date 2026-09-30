@@ -6,7 +6,7 @@
     O que este script faz:
       1. Garante o 'uv' (gerenciador de Python) - oferece instalar via winget
       2. Cria o venv em %USERPROFILE%\.config\opencode\laya\.venv (Python 3.12)
-      3. Instala PyTorch (CUDA detectado automaticamente; sem NVIDIA usa CPU) e laya[serve]
+      3. Instala PyTorch (CUDA detectado automaticamente; sem NVIDIA usa CPU) e laya[serve,mcp]
       4. Copia o plugin para %USERPROFILE%\.config\opencode\plugins\laya\index.ts
       5. Opcionalmente roda um smoke test (baixa os pesos ~1,7 GB)
 .PARAMETER Force
@@ -107,7 +107,7 @@ function Test-Deps {
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        & $VenvPy -c "import laya, torch" *> $null
+        & $VenvPy -c "import laya, torch, mcp" *> $null
         return ($LASTEXITCODE -eq 0)
     } finally {
         $ErrorActionPreference = $prev
@@ -122,8 +122,8 @@ if ($Force -or -not (Test-Deps)) {
         Warn "instalacao com --torch-backend=auto falhou; tentando o indice padrao do PyPI"
         Invoke-Uv pip install --python $VenvPy torch
     }
-    Info "instalando laya[serve]"
-    Invoke-Uv pip install --python $VenvPy "laya[serve]"
+    Info "instalando laya[serve,mcp]"
+    Invoke-Uv pip install --python $VenvPy "laya[serve,mcp]"
     Info "instalando httpx (usado pelos scripts de teste)"
     Invoke-Uv pip install --python $VenvPy httpx
 } else {
