@@ -2,6 +2,9 @@
 logs/
 *.log
 
+# dependências de desenvolvimento (npm install)
+node_modules/
+
 # resultados de calibração (locais)
 calibration*.json
 
